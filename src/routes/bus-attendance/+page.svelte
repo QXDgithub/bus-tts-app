@@ -19,7 +19,19 @@
     let shift = '';
     /** @type {string} */
     let successMessage = '';
-    /** @type {Array<Object>} */
+
+    /**
+     * @typedef {Object} Student
+     * @property {string} adm_no
+     * @property {string} name
+     * @property {string} class_sec
+     * @property {string} route
+     * @property {string} bus_no
+     * @property {string} shift
+     * @property {string} pickup_drop
+     */
+
+    /** @type {Student[]} */
     let busNew = [];
 
     onMount(() => {
