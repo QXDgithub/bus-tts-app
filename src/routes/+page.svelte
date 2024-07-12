@@ -1,6 +1,6 @@
 <script>
     import { goto } from '$app/navigation';
-    import { supabase } from '../lib/supabaseClient';
+    import { supabase } from '$lib/supabaseClient';
 
     let nurseryTvs = '';
     let forenoonAfternoon = '';
