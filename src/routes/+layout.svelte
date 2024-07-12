@@ -1,6 +1,6 @@
 <script>
     import { onMount } from 'svelte';
-    import { supabase } from '$lib/supabase';
+    import { supabase } from '$lib/supabaseClient';
     import { goto } from '$app/navigation';
 
     onMount(async () => {
