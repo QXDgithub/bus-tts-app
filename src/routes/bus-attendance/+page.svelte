@@ -1,13 +1,12 @@
 <script>
-    // @ts-nocheck
     import { onMount, onDestroy } from 'svelte';
-    import { Html5Qrcode } from "html5-qrcode";
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { supabase } from '$lib/supabaseClient';
 
     let scannedValue = '';
     let html5QrCode = null;
+    let Html5Qrcode;
     let route = '';
     let busNo = '';
     let pickupDrop = '';
@@ -15,8 +14,12 @@
     let successMessage = '';
 
     let busNew = [];
+    let scannerHeight;
 
-    onMount(() => {
+    onMount(async () => {
+        const module = await import('html5-qrcode');
+        Html5Qrcode = module.Html5Qrcode;
+
         if (typeof window !== 'undefined') {
             const searchParams = new URLSearchParams($page.url.searchParams);
             route = searchParams.get('route') || '';
@@ -24,7 +27,7 @@
             pickupDrop = searchParams.get('pickupDrop') || '';
             shift = searchParams.get('shift') || '';
             fetchScannedStudents();
-            startScanner();
+            setupScanner();
         }
     });
 
@@ -36,12 +39,25 @@
         }
     });
 
+    function setupScanner() {
+        const scannerContainer = document.getElementById('scanner-container');
+        scannerHeight = window.innerHeight * 0.6; // 60% of viewport height
+        scannerContainer.style.height = `${scannerHeight}px`;
+
+        startScanner();
+    }
+
     function startScanner() {
+        if (!Html5Qrcode) {
+            console.error('Html5Qrcode not loaded');
+            return;
+        }
+
         html5QrCode = new Html5Qrcode("scanner");
         const config = { 
             fps: 10, 
-            qrbox: { width: 300, height: 150 },
-            aspectRatio: 1.777778,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1,
             disableFlip: false,
         };
 
@@ -196,8 +212,6 @@
     #scanner-container {
         width: 100%;
         max-width: 100%;
-        height: auto;
-        aspect-ratio: 16 / 9;
         position: relative;
         border: 1px solid #ccc;
         margin-bottom: 1rem;
