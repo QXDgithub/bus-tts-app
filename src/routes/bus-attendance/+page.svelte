@@ -1,96 +1,69 @@
 <script>
+    // @ts-nocheck
     import { onMount, onDestroy } from 'svelte';
-    import Quagga from 'quagga';
+    import { Html5Qrcode } from "html5-qrcode";
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { supabase } from '$lib/supabaseClient';
 
-    /** @type {string} */
     let scannedValue = '';
-    /** @type {boolean} */
-    let isQuaggaInitialized = false;
-    /** @type {string} */
+    let html5QrCode = null;
     let route = '';
-    /** @type {string} */
     let busNo = '';
-    /** @type {string} */
     let pickupDrop = '';
-    /** @type {string} */
     let shift = '';
-    /** @type {string} */
     let successMessage = '';
 
-    /**
-     * @typedef {Object} Student
-     * @property {string} adm_no
-     * @property {string} name
-     * @property {string} class_sec
-     * @property {string} route
-     * @property {string} bus_no
-     * @property {string} shift
-     * @property {string} pickup_drop
-     */
-
-    /** @type {Student[]} */
     let busNew = [];
 
     onMount(() => {
         if (typeof window !== 'undefined') {
-            startScanner();
             const searchParams = new URLSearchParams($page.url.searchParams);
             route = searchParams.get('route') || '';
             busNo = searchParams.get('busNo') || '';
             pickupDrop = searchParams.get('pickupDrop') || '';
             shift = searchParams.get('shift') || '';
             fetchScannedStudents();
+            startScanner();
         }
     });
 
     onDestroy(() => {
-        if (isQuaggaInitialized) {
-            Quagga.stop();
+        if (html5QrCode) {
+            html5QrCode.stop().catch(error => {
+                console.error("Failed to stop camera:", error);
+            });
         }
     });
 
     function startScanner() {
-        Quagga.init({
-            inputStream: {
-                type: 'LiveStream',
-                target: document.querySelector('#scanner'),
-                constraints: {
-                    facingMode: 'environment'
-                }
-            },
-            decoder: {
-                readers: ['code_128_reader']
-            }
-        }, 
-        /**
-         * @param {Error|null} err
-         */
-        (err) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            Quagga.start();
-            isQuaggaInitialized = true;
-        });
+        html5QrCode = new Html5Qrcode("scanner");
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 300, height: 150 },
+            aspectRatio: 1.777778,
+            disableFlip: false,
+        };
 
-        Quagga.onDetected(
-            /**
-             * @param {{ codeResult: { code: string } }} data
-             */
-            (data) => {
-            scannedValue = data.codeResult.code;
-            if (scannedValue.length === 8 && /^\d+$/.test(scannedValue)) {
-                if (isQuaggaInitialized) {
-                    Quagga.stop();
-                    isQuaggaInitialized = false;
-                }
-                processScannedValue();
-            }
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).catch((err) => {
+            console.error(`Unable to start scanning: ${err}`);
         });
+    }
+
+    function onScanSuccess(decodedText) {
+        scannedValue = decodedText;
+        if (scannedValue.length === 8 && /^\d+$/.test(scannedValue)) {
+            processScannedValue();
+        }
+    }
+
+    function onScanFailure(errorMessage) {
+        console.warn(`Code scan error = ${errorMessage}`);
     }
 
     async function processScannedValue() {
@@ -137,7 +110,6 @@
             successMessage = 'Please enter a valid 8-digit admission number.';
         }
         scannedValue = '';
-        startScanner();
     }
 
     async function fetchScannedStudents() {
@@ -223,9 +195,9 @@
 
     #scanner-container {
         width: 100%;
-        max-width: 480px;
+        max-width: 100%;
         height: auto;
-        aspect-ratio: 4 / 3;
+        aspect-ratio: 16 / 9;
         position: relative;
         border: 1px solid #ccc;
         margin-bottom: 1rem;
@@ -320,7 +292,6 @@
     @media (max-width: 640px) {
         #scanner-container {
             max-width: 100%;
-            aspect-ratio: 16 / 9;
         }
     }
 </style>
